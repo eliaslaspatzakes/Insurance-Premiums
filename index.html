@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insurance ML: End-to-End Project</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- PrismJS (Syntax Highlighting) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        
+        /* Navigation Styles */
+        .nav-link { position: relative; color: #64748b; font-weight: 500; transition: color 0.2s; white-space: nowrap; }
+        .nav-link:hover { color: #0f172a; }
+        .nav-link.active { color: #2563eb; font-weight: 700; }
+        .nav-link.active::after { content: ''; position: absolute; bottom: -22px; left: 0; right: 0; height: 2px; background-color: #2563eb; }
+
+        /* Chart Containers */
+        .chart-container { position: relative; height: 350px; width: 100%; }
+        
+        /* Page Transitions */
+        .page-section { display: none; opacity: 0; transition: opacity 0.4s ease-in-out; }
+        .page-section.active { display: block; opacity: 1; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Code Block Styling */
+        .code-container {
+            background-color: #1e1e1e;
+            border-radius: 0.75rem;
+            border: 1px solid #334155;
+            overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .code-header {
+            background-color: #2d2d2d;
+            padding: 0.75rem 1.5rem;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+        }
+        pre[class*="language-"] { 
+            margin: 0 !important; 
+            border-radius: 0 !important; 
+            padding: 1.5rem !important; 
+            font-family: 'Fira Code', monospace !important; 
+            font-size: 0.85rem !important; 
+            line-height: 1.6 !important; 
+            max-height: 80vh; /* Scrollable code block */
+            overflow: auto !important;
+        }
+
+        /* Specific Component Styles */
+        .timeline-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background-color: #e2e8f0; transform: translateX(-50%); }
+        @media (max-width: 768px) { .timeline-line { left: 24px; } }
+        
+        .heatmap-grid { display: grid; grid-template-columns: auto repeat(3, 1fr); gap: 0.5rem; }
+        .heatmap-cell { padding: 1.5rem; border-radius: 0.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: transform 0.2s; color: #1e293b; }
+        .heatmap-cell:hover { transform: scale(1.05); z-index: 10; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .stat-badge { display: inline-flex; align-items: center; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; background-color: #f1f5f9; color: #475569; margin-bottom: 0.5rem; }
+
+        .btn-next { background-color: #2563eb; color: white; padding: 0.75rem 2rem; border-radius: 9999px; font-weight: 700; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3); transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; }
+        .btn-next:hover { background-color: #1d4ed8; transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.5); }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- Navigation Bar -->
+    <nav class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center gap-2 cursor-pointer" onclick="switchPage('intro')">
+                    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">IM</div>
+                    <span class="text-lg font-bold tracking-tight text-slate-900 hidden sm:block">Insurance<span class="text-blue-600">ML</span></span>
+                </div>
+
+                <!-- Desktop Menu -->
+                <div class="hidden lg:flex space-x-6 text-sm">
+                    <button onclick="switchPage('intro')" id="nav-intro" class="nav-link active">1. Εισαγωγή</button>
+                    <button onclick="switchPage('eda')" id="nav-eda" class="nav-link">2. EDA</button>
+                    <button onclick="switchPage('model')" id="nav-model" class="nav-link">3. Μοντέλο</button>
+                    <button onclick="switchPage('shap')" id="nav-shap" class="nav-link">4. SHAP</button>
+                    <button onclick="switchPage('strategy')" id="nav-strategy" class="nav-link">5. Στρατηγική</button>
+                    <button onclick="switchPage('code')" id="nav-code" class="nav-link font-mono text-slate-500 hover:text-blue-600">6. &lt;Code/&gt;</button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div class="lg:hidden flex overflow-x-auto px-4 py-2 gap-4 border-t border-slate-100 no-scrollbar">
+            <button onclick="switchPage('intro')" class="whitespace-nowrap text-sm font-medium text-slate-600">1. Intro</button>
+            <button onclick="switchPage('eda')" class="whitespace-nowrap text-sm font-medium text-slate-600">2. EDA</button>
+            <button onclick="switchPage('model')" class="whitespace-nowrap text-sm font-medium text-slate-600">3. Model</button>
+            <button onclick="switchPage('shap')" class="whitespace-nowrap text-sm font-medium text-slate-600">4. SHAP</button>
+            <button onclick="switchPage('strategy')" class="whitespace-nowrap text-sm font-medium text-slate-600">5. Strategy</button>
+            <button onclick="switchPage('code')" class="whitespace-nowrap text-sm font-medium text-slate-600">6. Code</button>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <main id="content-container" class="flex-grow">
+        
+        <!-- PAGE 1: INTRODUCTION -->
+        <section id="page-intro" class="page-section active py-12 px-4 md:px-8 max-w-7xl mx-auto">
+            <header class="text-center mb-16">
+                <div class="inline-block bg-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-widest mb-6">Pipeline Overview</div>
+                <h1 class="text-4xl md:text-5xl font-extrabold text-slate-900 mb-6">Πρόβλεψη Ετήσιου Ασφαλίστρου Υγείας</h1>
+                <p class="text-xl text-slate-600 max-w-3xl mx-auto">
+                    Στο παρόν project αναπτύχθηκε ένα end-to-end pipeline πρόβλεψης, το οποίο ξεκινά από τα raw δεδομένα και καταλήγει σε ερμηνεύσιμο μοντέλο μηχανικής μάθησης.
+                </p>
+            </header>
+
+            <div class="relative max-w-5xl mx-auto">
+                <div class="timeline-line hidden md:block"></div>
+                <!-- Step 1 -->
+                <div class="relative z-10 mb-20 flex flex-col md:flex-row items-center">
+                    <div class="md:w-1/2 md:pr-12 text-center md:text-right mb-4 md:mb-0">
+                        <h3 class="text-2xl font-bold text-slate-800 mb-3">1. Καθαρισμός & Προετοιμασία</h3>
+                        <p class="text-slate-600 leading-relaxed">
+                            Έλεγχος για ελλιπείς και ασύμβατες τιμές. Τυποποίηση κατηγορικών μεταβλητών (π.χ. ομαδοποίηση σε <i>age_groups</i>, <i>income_levels</i>, <i>annual_medical_cost_group</i>).
+                            Δημιουργία παραγώγων χαρακτηριστικών όπως <code class="bg-slate-100 px-1 rounded font-mono text-sm">chronic_count</code> και <code class="bg-slate-100 px-1 rounded font-mono text-sm">risk_score_group</code>.
+                        </p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-600 rounded-full border-4 border-white shadow-lg z-10 text-white flex items-center justify-center text-xl shrink-0">🧹</div><div class="md:w-1/2 md:pl-12 hidden md:block"></div>
+                </div>
+                <!-- Step 2 -->
+                <div class="relative z-10 mb-20 flex flex-col md:flex-row items-center">
+                    <div class="md:w-1/2 md:pr-12 hidden md:block"></div><div class="w-12 h-12 bg-indigo-600 rounded-full border-4 border-white shadow-lg z-10 text-white flex items-center justify-center text-xl shrink-0">🗄️</div>
+                    <div class="md:w-1/2 md:pl-12 text-center md:text-left mb-4 md:mb-0">
+                        <h3 class="text-2xl font-bold text-slate-800 mb-3">2. Τελικός Modeling Πίνακας</h3>
+                        <p class="text-slate-600 leading-relaxed">
+                            Ενοποίηση όλων των σχετικών χαρακτηριστικών (demographics, συμπεριφορικά, ιατρικό ιστορικό, claims, risk score) σε έναν πίνακα <code class="bg-slate-100 px-1 rounded font-mono text-sm">premium_model_data</code>.
+                            Αποθήκευση σε database και πρόσβαση μέσω SQL.
+                        </p>
+                    </div>
+                </div>
+                <!-- Step 3 -->
+                <div class="relative z-10 mb-20 flex flex-col md:flex-row items-center">
+                    <div class="md:w-1/2 md:pr-12 text-center md:text-right mb-4 md:mb-0">
+                        <h3 class="text-2xl font-bold text-slate-800 mb-3">3. SQL-based EDA</h3>
+                        <p class="text-slate-600 leading-relaxed">
+                            Ανάλυση βασικών σχέσεων με SQL queries (premium vs κάπνισμα, ιατρικό κόστος, χρόνιες παθήσεις).
+                            Οπτικοποίηση drivers και δημιουργία business segments: <strong>Premium Segment</strong> (Low/Mid/High) και <strong>Risk Level</strong>.
+                        </p>
+                    </div>
+                    <div class="w-12 h-12 bg-emerald-600 rounded-full border-4 border-white shadow-lg z-10 text-white flex items-center justify-center text-xl shrink-0">📊</div><div class="md:w-1/2 md:pl-12 hidden md:block"></div>
+                </div>
+                <!-- Step 4 -->
+                <div class="relative z-10 mb-20 flex flex-col md:flex-row items-center">
+                    <div class="md:w-1/2 md:pr-12 hidden md:block"></div><div class="w-12 h-12 bg-amber-500 rounded-full border-4 border-white shadow-lg z-10 text-white flex items-center justify-center text-xl shrink-0">⚙️</div>
+                    <div class="md:w-1/2 md:pl-12 text-center md:text-left mb-4 md:mb-0">
+                        <h3 class="text-2xl font-bold text-slate-800 mb-3">4. Μοντελοποίηση & Αξιολόγηση</h3>
+                        <p class="text-slate-600 leading-relaxed">
+                            Pipelines με ColumnTransformer (scaling/encoding). Σύγκριση μοντέλων (Linear, RF, XGBoost) και επιλογή του <strong>MLPRegressor</strong>.
+                            Αξιολόγηση με RMSE, MAE, R².
+                        </p>
+                    </div>
+                </div>
+                <!-- Step 5 -->
+                <div class="relative z-10 flex flex-col md:flex-row items-center">
+                    <div class="md:w-1/2 md:pr-12 text-center md:text-right mb-4 md:mb-0">
+                        <h3 class="text-2xl font-bold text-slate-800 mb-3">5. Ερμηνευσιμότητα (SHAP)</h3>
+                        <p class="text-slate-600 leading-relaxed">
+                            Υπολογισμός SHAP values και παραγωγή summary/waterfall plots.
+                            Ταυτοποίηση παραγόντων επιρροής (medical cost, claims, chronic_count) και σύνδεση με τα ευρήματα του EDA.
+                        </p>
+                    </div>
+                    <div class="w-12 h-12 bg-rose-600 rounded-full border-4 border-white shadow-lg z-10 text-white flex items-center justify-center text-xl shrink-0">💡</div><div class="md:w-1/2 md:pl-12 hidden md:block"></div>
+                </div>
+            </div>
+
+            <div class="text-center mt-16 pb-12">
+                <button onclick="switchPage('eda')" class="btn-next">
+                    Επόμενο Βήμα: EDA
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                </button>
+            </div>
+        </section>
+
+        <!-- PAGE 2: EDA -->
+        <section id="page-eda" class="page-section py-12 px-4 md:px-8 max-w-7xl mx-auto">
+            <header class="text-center mb-16">
+                <h1 class="text-3xl font-extrabold text-slate-900 mb-4">Exploratory Data Analysis (EDA)</h1>
+                <p class="text-slate-600">Αναλυτική παρουσίαση των βασικών συσχετίσεων και κατανομών.</p>
+            </header>
+
+            <!-- 1. Risk vs Income -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-20 border-b border-slate-100 pb-12">
+                <div class="space-y-4">
+                    <span class="stat-badge">Risk Analysis</span>
+                    <h2 class="text-2xl font-bold text-slate-800">1. Κατανομή πελατών υψηλού ρίσκου ανά εισόδημα</h2>
+                    <p class="text-slate-600">
+                        Για τους πελάτες με <code class="bg-slate-100 px-1 rounded font-mono text-sm">risk_score_group = 'high_risk'</code> (Σύνολο: 32.617), παρατηρούμε ισομερή κατανομή (περίπου 24–25% ανά κατηγορία):
+                    </p>
+                    <ul class="list-disc pl-5 space-y-1 text-sm text-slate-700">
+                        <li><strong>High income:</strong> 8.261 πελάτες</li>
+                        <li><strong>Upper-middle income:</strong> 8.060 πελάτες</li>
+                        <li><strong>Lower-middle income:</strong> 8.187 πελάτες</li>
+                        <li><strong>Low income:</strong> 8.109 πελάτες</li>
+                    </ul>
+                    <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500 text-sm text-blue-900">
+                        <strong>Συμπέρασμα:</strong> Το ρίσκο υγείας <u>δεν</u> συγκεντρώνεται σε συγκεκριμένο επίπεδο εισοδήματος. Η τιμολόγηση δεν μπορεί να βασιστεί αποκλειστικά στο εισόδημα.
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <div class="chart-container"><canvas id="chartIncome"></canvas></div>
+                </div>
+            </div>
+
+            <!-- 2. Premium vs Age -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-20 border-b border-slate-100 pb-12 lg:flex-row-reverse">
+                <div class="lg:order-2 space-y-4">
+                    <span class="stat-badge">Demographics</span>
+                    <h2 class="text-2xl font-bold text-slate-800">2. Μέσο ετήσιο ασφάλιστρο ανά ηλικία</h2>
+                    <p class="text-slate-600">
+                        Σαφής ανοδική πορεία του ασφαλίστρου. Από Minors (~498 €) έως Senior citizens (~674 €) η μέση τιμή αυξάνεται κατά περίπου <strong>176,5 € (+35,5%)</strong>.
+                    </p>
+                    <ul class="list-disc pl-5 space-y-1 text-sm text-slate-700">
+                        <li><strong>Minors:</strong> 497,64 €</li>
+                        <li><strong>Young adults:</strong> 523,42 €</li>
+                        <li><strong>Adults:</strong> 563,35 €</li>
+                        <li><strong>Middle-aged:</strong> 611,95 €</li>
+                        <li><strong>Senior citizens:</strong> 674,17 €</li>
+                    </ul>
+                    <div class="bg-emerald-50 p-4 rounded-lg border-l-4 border-emerald-500 text-sm text-emerald-900">
+                        <strong>Συμπέρασμα:</strong> Η ηλικία συνδέεται με υψηλότερη πιθανότητα εμφάνισης προβλημάτων υγείας και αυξημένο ασφάλιστρο.
+                    </div>
+                </div>
+                <div class="lg:order-1 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <div class="chart-container"><canvas id="chartAge"></canvas></div>
+                </div>
+            </div>
+
+            <!-- 3. Smoker -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-20 border-b border-slate-100 pb-12">
+                <div class="space-y-4">
+                    <span class="stat-badge">Lifestyle</span>
+                    <h2 class="text-2xl font-bold text-slate-800">3. Κατηγορία Καπνίσματος</h2>
+                    <p class="text-slate-600">
+                        Οι <strong>Current smokers</strong> (N=12.098) καταβάλλουν κατά μέσο όρο <strong>741,88 €</strong>, δηλαδή περίπου <strong>+34,9%</strong> περισσότερο από τους Never smokers (549,84 €).
+                        Οι Former smokers βρίσκονται ενδιάμεσα (601,43 €).
+                    </p>
+                    <div class="bg-slate-50 p-4 rounded-lg border-l-4 border-slate-500 text-sm text-slate-900">
+                        <strong>Συμπέρασμα:</strong> Η συμπεριφορά καπνίσματος ενσωματώνεται ουσιαστικά στη διαδικασία τιμολόγησης ως παράγοντας υψηλού κινδύνου.
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <div class="chart-container"><canvas id="chartSmoker"></canvas></div>
+                </div>
+            </div>
+
+            <!-- 4. Medical Cost -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-20 border-b border-slate-100 pb-12 lg:flex-row-reverse">
+                <div class="lg:order-2 space-y-4">
+                    <span class="stat-badge">Cost Drivers</span>
+                    <h2 class="text-2xl font-bold text-slate-800">4. Ετήσιο Ιατρικό Κόστος</h2>
+                    <p class="text-slate-600">
+                        Το <strong>High cost</strong> group πληρώνει μέσο ασφάλιστρο <strong>1.058,67 €</strong>, το οποίο είναι <strong>υπερτριπλάσιο (+245,6%)</strong> σε σχέση με το Low cost (306,34 €).
+                    </p>
+                    <ul class="list-disc pl-5 space-y-1 text-sm text-slate-700">
+                        <li><strong>Low cost:</strong> 306,34 €</li>
+                        <li><strong>Lower-middle:</strong> 409,18 €</li>
+                        <li><strong>Upper-middle:</strong> 555,74 €</li>
+                        <li><strong>High cost:</strong> 1.058,67 €</li>
+                    </ul>
+                    <div class="bg-rose-50 p-4 rounded-lg border-l-4 border-rose-500 text-sm text-rose-900">
+                        <strong>Συμπέρασμα:</strong> Το ετήσιο ιατρικό κόστος αναδεικνύεται σε έναν από τους βασικότερους drivers της τιμολόγησης.
+                    </div>
+                </div>
+                <div class="lg:order-1 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <div class="chart-container"><canvas id="chartMedCost"></canvas></div>
+                </div>
+            </div>
+
+            <!-- 5. Chronic Count -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-12">
+                <div class="space-y-4">
+                    <span class="stat-badge">Health Status</span>
+                    <h2 class="text-2xl font-bold text-slate-800">5. Αριθμός Χρόνιων Παθήσεων</h2>
+                    <p class="text-slate-600">
+                        Για 0 έως 4 παθήσεις παρατηρείται <strong>μονοτονική αύξηση</strong> με αυξανόμενη κλίση. Ένας πελάτης με 4 παθήσεις πληρώνει πάνω από διπλάσιο ασφάλιστρο (1.120 €) σε σχέση με 0 παθήσεις (480 €).
+                    </p>
+                    <div class="bg-orange-50 p-4 rounded-lg border-l-4 border-orange-500 text-sm text-orange-900">
+                        <strong>Συμπέρασμα:</strong> Το φορτίο χρόνιων νοσημάτων αποτελεί κρίσιμο παράγοντα κινδύνου.
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <div class="chart-container"><canvas id="chartChronic"></canvas></div>
+                </div>
+            </div>
+
+            <div class="text-center pb-12">
+                <button onclick="switchPage('model')" class="btn-next">
+                    Επόμενο Βήμα: Μοντέλο
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                </button>
+            </div>
+        </section>
+
+        <!-- PAGE 3: MODEL -->
+        <section id="page-model" class="page-section py-12 px-4 md:px-8 max-w-7xl mx-auto">
+             <header class="text-center mb-16">
+                <h1 class="text-3xl font-extrabold text-slate-900 mb-4">Εκπαίδευση & Αξιολόγηση Μοντέλου</h1>
+                <p class="text-slate-600">Ανάπτυξη ML pipeline και βελτιστοποίηση του MLP Regressor.</p>
+            </header>
+
+            <!-- 1. Feature Selection -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-20">
+                <div class="space-y-6">
+                    <h2 class="text-2xl font-bold text-slate-900">1. Επιλογή Χαρακτηριστικών</h2>
+                    <p class="text-slate-600 text-lg">
+                        Οι μεταβλητές χωρίστηκαν σε αριθμητικές (Correlation heatmap) και κατηγορικές (One-way ANOVA).
+                    </p>
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm text-sm text-slate-700 space-y-2">
+                        <p><strong>Στατιστικά Σημαντικά (p < 0.05):</strong><br>
+                        smoker, age_groups, bmi_groups, systolic_bp, ldl, hba1c, risk_score, medical_cost, claims.</p>
+                        <p class="pt-2 border-t border-slate-100"><strong>Μη Σημαντικά:</strong><br>
+                        sex, region, urban_rural, marital_status, employment, education.</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden max-h-[350px] overflow-y-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-50 text-slate-500 uppercase text-xs sticky top-0"><tr><th class="px-6 py-3">Feature</th><th class="px-6 py-3 text-right">P-value</th><th class="px-6 py-3 text-center">Status</th></tr></thead>
+                        <tbody class="divide-y divide-slate-100" id="anovaTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 2. Pipeline & Model Choice -->
+            <div class="mb-20">
+                <h2 class="text-2xl font-bold text-slate-900 mb-6">2. Το Pipeline και η Επιλογή του MLP</h2>
+                <div class="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8">
+                    <p class="text-slate-700 leading-relaxed mb-4">
+                        Αρχικά δοκιμάστηκαν διάφορα μοντέλα (Linear Regression, Random Forest, XGBoost) με Cross-Validation. Το <strong>MLPRegressor</strong> παρουσίασε τη σταθερά καλύτερη συνολική επίδοση (χαμηλότερο RMSE/MAE, υψηλότερο R²).
+                    </p>
+                    <p class="text-slate-700 leading-relaxed">
+                        Στη συνέχεια, το MLP βελτιστοποιήθηκε μέσω <strong>RandomizedSearchCV</strong> (hidden_layer_sizes, learning_rate). Το τελικό μοντέλο εκπαιδεύτηκε με χρήση <code>ColumnTransformer</code> για scaling και one-hot encoding.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 3. Final Evaluation -->
+            <div class="bg-slate-900 text-white rounded-3xl p-8 md:p-12 shadow-2xl mb-12">
+                <h2 class="text-3xl font-bold text-center mb-2">Τελική Αξιολόγηση (Test Set)</h2>
+                <p class="text-slate-400 text-center mb-10">Αποτελέσματα σε ανεξάρτητα δεδομένα.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center mb-10">
+                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+                        <div class="text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">R² Score</div>
+                        <div class="text-5xl font-extrabold text-emerald-400 mb-2">0.756</div>
+                        <p class="text-sm text-slate-400">Εξηγεί το 76% της διακύμανσης</p>
+                    </div>
+                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+                        <div class="text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Mean Absolute Error</div>
+                        <div class="text-5xl font-extrabold text-amber-400 mb-2">95.82 €</div>
+                        <p class="text-sm text-slate-400">~16.5% του μέσου ασφαλίστρου</p>
+                    </div>
+                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+                        <div class="text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Target Mean</div>
+                        <div class="text-5xl font-extrabold text-white mb-2">581.65 €</div>
+                        <p class="text-sm text-slate-400">Μέσο Ετήσιο Ασφάλιστρο</p>
+                    </div>
+                </div>
+
+                <div class="max-w-3xl mx-auto bg-slate-800/50 p-6 rounded-xl border border-slate-700 text-sm text-slate-300 leading-relaxed">
+                    <strong>Business Interpretation:</strong> Το μέσο σφάλμα των ~96€ είναι διαχειρίσιμο για τιμολόγηση. Το ποσοστό λάθους 16.5% κρίνεται ικανοποιητικό, καθώς το μοντέλο δεν έχει πρόσβαση σε πλήρη ιατρικό φάκελο, αλλά καταφέρνει να συλλάβει τις κύριες τάσεις ρίσκου.
+                </div>
+            </div>
+
+            <div class="text-center pb-12">
+                <button onclick="switchPage('shap')" class="btn-next">
+                    Επόμενο Βήμα: SHAP <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                </button>
+            </div>
+        </section>
+
+        <!-- PAGE 4: SHAP -->
+        <section id="page-shap" class="page-section py-12 px-4 md:px-8 max-w-7xl mx-auto">
+            <header class="text-center mb-16">
+                <h1 class="text-3xl font-extrabold text-slate-900 mb-4">Ανάλυση SHAP Values</h1>
+                <p class="text-slate-600">Σε αυτό το τμήμα παρουσιάζεται αναλυτικά η ανάλυση SHAP (SHapley Additive exPlanations), η οποία χρησιμοποιήθηκε για να ερμηνεύσουμε το μοντέλο πρόβλεψης του ετήσιου ασφαλίστρου.  
+Η ανάλυση βασίζεται σε RandomForestRegressor που εκπαιδεύτηκε πάνω στα ίδια προεπεξεργασμένα δεδομένα με το κύριο μοντέλο (MLPRegressor), και έχει παρόμοια απόδοση, γεγονός που καθιστά τα ευρήματα των SHAP values αντιπροσωπευτικά για τη γενική συμπεριφορά του συστήματος τιμολόγησης.</p>
+            </header>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-20">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-4">Global Feature Importance</h3>
+                    <p class="text-slate-600 text-sm mb-4">
+                        Τα σημαντικότερα χαρακτηριστικά που οδηγούν σε αύξηση ασφαλίστρου είναι: <strong>Ιατρικό κόστος, Claims, Χρόνιες παθήσεις, Κάπνισμα, Risk score, Νοσηλείες</strong>.
+                    </p>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                        <div class="chart-container"><canvas id="chartShapSummary"></canvas></div>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-4">Dependence Plot: Χρόνιες Παθήσεις</h3>
+                    <p class="text-slate-600 text-sm mb-4">
+                        Μη γραμμική σχέση: Για 0-1 παθήσεις η επίδραση είναι ουδέτερη. Από 2-3 παθήσεις και πάνω, τα SHAP values γίνονται έντονα θετικά, ειδικά αν συνδυάζονται με υψηλό κόστος.
+                    </p>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                        <div class="chart-container"><canvas id="chartShapDependence"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <h2 class="text-2xl font-bold text-slate-900 mb-8 border-t border-slate-200 pt-8">Local Interpretation (Waterfall Plots)</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
+                
+                <!-- Customer A -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
+                    <div class="bg-emerald-50 p-4 border-b border-emerald-100 flex justify-between items-center">
+                        <h3 class="font-bold text-emerald-900">Πελάτης Α (Low Premium)</h3>
+                        <span class="text-emerald-700 font-bold">409.85 €</span>
+                    </div>
+                    <div class="p-6">
+                        <div class="chart-container h-[300px]"><canvas id="chartWaterfallA"></canvas></div>
+                        <div class="mt-4 text-sm text-slate-600 bg-slate-50 p-3 rounded leading-relaxed">
+                            <strong>Ανάλυση:</strong> Baseline ~583€. Παρότι καπνιστής (+3€), η απουσία υψηλού κόστους (-115€) και η έλλειψη claims (-45€) ρίχνει την τιμή <strong>30% κάτω</strong> από το μέσο όρο.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customer B -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
+                    <div class="bg-rose-50 p-4 border-b border-rose-100 flex justify-between items-center">
+                        <h3 class="font-bold text-rose-900">Πελάτης Β (High Premium)</h3>
+                        <span class="text-rose-700 font-bold">962.67 €</span>
+                    </div>
+                    <div class="p-6">
+                        <div class="chart-container h-[300px]"><canvas id="chartWaterfallB"></canvas></div>
+                        <div class="mt-4 text-sm text-slate-600 bg-slate-50 p-3 rounded leading-relaxed">
+                            <strong>Ανάλυση:</strong> Το High Cost Group (+446€) είναι ο κύριος driver. Μαζί με το υψηλό μέσο claim (+39€) και το Risk Score (+6€), η τιμή εκτοξεύεται <strong>65% πάνω</strong> από το μέσο όρο.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center pb-12">
+                <button onclick="switchPage('strategy')" class="btn-next">
+                    Επόμενο Βήμα: Στρατηγική
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                </button>
+            </div>
+        </section>
+
+        <!-- PAGE 5: STRATEGY -->
+        <section id="page-strategy" class="page-section py-12 px-4 md:px-8 max-w-7xl mx-auto">
+            <header class="text-center mb-16">
+                <h1 class="text-3xl font-extrabold text-slate-900 mb-4">Στρατηγική & Συμπεράσματα</h1>
+                <p class="text-slate-600">Segmentation και Pricing Heatmap.</p>
+            </header>
+
+            <!-- 1. Segmentation Chart -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-20 items-center">
+                <div class="space-y-6">
+                    <h2 class="text-2xl font-bold text-slate-900">1. Κατανομή Πελατών (Segmentation)</h2>
+                    <p class="text-slate-600">Το γράφημα απεικονίζει το πλήθος πελατών ανά <strong>Premium Segment</strong> και <strong>Risk Level</strong>.</p>
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm text-sm space-y-3">
+                        <p>📉 <strong>Low Price:</strong> Κυριαρχία <strong>Low Risk (~26k)</strong>. Ελάχιστοι High Risk.</p>
+                        <p class="border-t border-slate-100 pt-2">⚖️ <strong>Mid Price:</strong> Ζώνη μετάβασης. Σημαντικό ποσοστό <strong>Medium Risk (~18k)</strong>.</p>
+                        <p class="border-t border-slate-100 pt-2">📈 <strong>High Price:</strong> Αντιστροφή. Οι <strong>Medium/High Risk</strong> είναι πλειοψηφία.</p>
+                    </div>
+                    <p class="text-slate-500 italic text-sm">Το μοντέλο αναθέτει σωστά τα ακριβά συμβόλαια σε προφίλ υψηλότερου κινδύνου.</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <div class="chart-container"><canvas id="chartStrategySeg"></canvas></div>
+                </div>
+            </div>
+
+            <!-- 2. Pricing Heatmap -->
+            <div class="mb-20">
+                <h2 class="text-2xl font-bold text-slate-900 mb-6">2. Μέσο Premium (Pricing Heatmap)</h2>
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+                    <div class="min-w-[600px] heatmap-grid">
+                        <!-- Headers -->
+                        <div></div>
+                        <div class="text-center font-bold text-slate-500 pb-2">Low Price</div>
+                        <div class="text-center font-bold text-slate-500 pb-2">Mid Price</div>
+                        <div class="text-center font-bold text-slate-500 pb-2">High Price</div>
+
+                        <!-- Row 1 -->
+                        <div class="font-bold text-slate-600 flex items-center">Low Risk</div>
+                        <div class="heatmap-cell bg-emerald-100 border border-emerald-200"><span class="font-bold text-emerald-800 text-lg">305 €</span></div>
+                        <div class="heatmap-cell bg-emerald-50 border border-emerald-100"><span class="font-bold text-emerald-700 text-lg">510 €</span></div>
+                        <div class="heatmap-cell bg-orange-50 border border-orange-100"><span class="font-bold text-orange-700 text-lg">890 €</span></div>
+
+                        <!-- Row 2 -->
+                        <div class="font-bold text-slate-600 flex items-center">Medium Risk</div>
+                        <div class="heatmap-cell bg-emerald-50 border border-emerald-100"><span class="font-bold text-emerald-700 text-lg">360 €</span></div>
+                        <div class="heatmap-cell bg-orange-100 border border-orange-200"><span class="font-bold text-orange-800 text-lg">620 €</span></div>
+                        <div class="heatmap-cell bg-rose-100 border border-rose-200"><span class="font-bold text-rose-800 text-lg">1,150 €</span></div>
+
+                        <!-- Row 3 -->
+                        <div class="font-bold text-slate-600 flex items-center">High Risk</div>
+                        <div class="heatmap-cell bg-orange-50 border border-orange-100"><span class="font-bold text-orange-700 text-lg">415 €</span></div>
+                        <div class="heatmap-cell bg-rose-100 border border-rose-200"><span class="font-bold text-rose-800 text-lg">740 €</span></div>
+                        <div class="heatmap-cell bg-rose-200 border border-rose-300 shadow-inner"><span class="font-bold text-rose-900 text-lg">1,450 €</span></div>
+                    </div>
+                </div>
+                <p class="text-center text-slate-600 mt-6 max-w-3xl mx-auto">
+                    Η σχέση ρίσκου–τιμής είναι μονότονα αυξητική. Οι High Risk πελάτες στο High Price segment πληρώνουν σχεδόν <strong>5 φορές περισσότερο</strong> από τους Low Risk/Low Price.
+                </p>
+            </div>
+
+            <!-- Conclusion -->
+            <div class="bg-slate-900 text-slate-300 rounded-3xl p-8 md:p-12 text-center shadow-2xl mb-12">
+                <div class="inline-block p-4 bg-slate-800 rounded-full mb-6 text-3xl">🏁</div>
+                <h2 class="text-3xl font-bold text-white mb-6">Επίλογος Project</h2>
+                <div class="max-w-4xl mx-auto text-lg leading-relaxed space-y-4">
+                    <p>Συνοψίζοντας, στο project αυτό αναπτύχθηκε ένα πλήρες, end-to-end πλαίσιο πρόβλεψης και ερμηνείας ασφαλίστρων υγείας: από τον καθαρισμό και το SQL-based EDA, μέχρι την εκπαίδευση ενός MLP μοντέλου με ικανοποιητική ακρίβεια (<strong>R² ≈ 0,76</strong>, MAE ≈ 16–17%).</p>
+                    <p>Η ανάλυση SHAP έδειξε ότι το μοντέλο βασίζεται σε παράγοντες που συμφωνούν με την ασφαλιστική λογική. Τέλος, το segmentation μετέφρασε τα τεχνικά ευρήματα σε σαφή επιχειρησιακά σενάρια για βέλτιστη τιμολόγηση.</p>
+                </div>
+            </div>
+
+            <div class="text-center pb-12">
+                <button onclick="switchPage('code')" class="btn-next bg-slate-700 hover:bg-slate-600">Δείτε τον Πλήρη Κώδικα (Python) <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button>
+            </div>
+        </section>
+
+        <!-- PAGE 6: CODE REPOSITORY -->
+        <section id="page-code" class="page-section py-12 px-4 md:px-8 max-w-5xl mx-auto">
+            <header class="text-center mb-16">
+                <div class="inline-block bg-slate-200 text-slate-700 px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-widest mb-4 font-mono">&lt;/&gt; Source Code</div>
+                <h1 class="text-3xl font-extrabold text-slate-900 mb-4">Complete Python Script</h1>
+                <p class="text-slate-600">Ο πλήρης κώδικας για το pipeline.</p>
+            </header>
+
+            <div class="code-container">
+                <div class="code-header">
+                    <span>insurance_ml_full.py</span>
+                    <button class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-white transition" onclick="copyCode()">Copy Code</button>
+                </div>
+                <pre><code id="fullCode" class="language-python"># imports
+import psycopg2
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import math
+
+# %%
+# data pulling from postgres database
+
+
+conn = psycopg2.connect(
+    host="localhost",
+    port="5432",
+    database="Insurnace",
+    user="postgres",
+    password="1131995i@"
+)
+
+
+
+query = 'SELECT * FROM public."insurnace_data";'
+df = pd.read_sql_query(query, conn)
+
+print(df.head())
+
+
+
+
+
+# %%
+df
+
+# %%
+df.isna().sum()
+# there are no missing values in the dataset
+
+# %%
+df.info()
+
+# %%
+#general statistics about the dataset
+df.describe().T
+
+# %%
+df.rename(columns={"annual_premium":"target"}, inplace=True)
+
+
+# %%
+bool_cols = df.select_dtypes(include=  ["bool"]).columns.tolist()
+
+for col in bool_cols:
+    df[col] = df[col].astype(int)
+    
+    
+
+
+# %%
+df
+
+# %%
+df.info()
+
+# %%
+#age groups creation
+df["age_groups"] = pd.cut(df["age"], 
+                          bins=[0,17,35,50,65,math.inf], 
+                          labels= ["minors", "young_adult","adult","middle_aged","senior_citizen" ])
+
+# %%
+#removal of rows with age 0
+mask =  df["age"] == 0
+
+df = df[~mask]
+
+
+# %%
+#education level grouping
+df["education"].unique()
+
+df.loc[:,"education_groups"] = np.where(df["education"] == "No HS","Uncopleted_education",
+                                  np.where(df["education"].isin(["Hs","Some College"]),"basic_education",
+                                                 "higher_education"))
+df["education_groups"].unique()
+
+# %%
+print("employment status:",df["employment_status"].unique())
+print("smoking status:",df["smoker"].unique())
+print("driking status:",df["alcohol_freq"].unique())
+
+
+# %%
+#column that have to do with visits
+print(df["hospitalizations_last_3yrs"].unique())
+print(df["visits_last_year"].unique())
+print(df["days_hospitalized_last_3yrs"].unique())
+
+# %%
+# column thta have to do with visits from int4 to binary
+df.loc[:,"hospitalizations_last_3yrs"] = np.where(df["hospitalizations_last_3yrs"] > 0,1,0)
+df.loc[:,"visits_last_year"] = np.where(df["visits_last_year"] > 0,1,0)
+df.loc[:,"days_hospitalized_last_3yrs"] = np.where(df["days_hospitalized_last_3yrs"] > 0,1,0)
+
+# %%
+df.info()
+
+# %%
+#household size grouping
+df["household_size"].unique()
+df.loc[:,"household_size_groups"] = pd.cut(
+                             df["household_size"], 
+                              bins=[0,1,3,5,math.inf],
+                              labels=["alone","small_family","medium_family","large_family"])
+
+# %%
+df.loc[:,"income_groups"] = pd.qcut(
+                                    df["income"],
+                                    q=4,
+                                    labels=["low_income","lower_middle_income","upper_middle_income","high_income"])
+
+
+# %%
+#df["monthly_premium"] will be remmoved in the data set used for model to prevent data leakage
+df["monthly_premium"]
+
+# %%
+#bmi groups
+df.loc[:,"BMI_groups"] = pd.qcut(df["bmi"],
+                            q=4,
+                            labels=["underweight_normal","overweight","obesity_class1","obesity_class2"])
+
+# %%
+#dependents groups
+df["dependents"].unique()
+df.loc[:,"dependents_groups"] = pd.cut(
+    df["dependents"],
+    bins=[-1, 0, 2, 4, math.inf],  
+    labels=["no_dependents", "small_family", "medium_family", "large_family"]
+)
+
+# %%
+df.loc[:,"income_levels"] = pd.qcut(df["income"],
+                                 q=4,   
+                                 labels=["low_income","lower_middle_income","upper_middle_income","high_income"])
+
+# %%
+df["income_levels"].unique()
+
+# %%
+df[df["income_levels"].isna()]
+mask =df["income_levels"].isna()
+
+df = df[~mask]
+
+
+
+# %%
+# na sinexiso me to na kano groups
+df.info()
+
+
+# %%
+df["systolic_bp"].unique()
+
+df["systolic_bp_group"] = pd.cut(
+    df["systolic_bp"],
+    bins=[-np.inf, 90, 120, 130, 140, 180, np.inf],
+    labels=[
+        "low",
+        "normal",
+        "elevated",
+        "hypertension_stage_1",
+        "hypertension_stage_2",
+        "hypertensive_crisis"
+    ]
+)
+
+df["diastolic_bp_group"] = pd.cut(
+    df["diastolic_bp"],
+    bins=[-np.inf, 60, 80, 90, 120, np.inf],
+    labels=[
+        "low",
+        "normal",
+        "elevated",
+        "hypertension_stage_2",
+        "hypertensive_crisis"
+    ]
+)
+
+
+
+# %%
+df["ldl"].unique()
+df["ldl_group"] = pd.cut(
+    df["ldl"],
+    bins=[-np.inf, 100, 130, 160, 190, np.inf],
+    labels=[
+        "optimal",
+        "near_optimal",
+        "borderline_high",
+        "high",
+        "very_high"
+    ]
+)
+
+df["hba1c_group"] = pd.cut(
+    df["hba1c"],
+    bins=[-np.inf, 5.7, 6.5, 8.0, np.inf],
+    labels=["normal", "prediabetes", "diabetes", "poor_control"]
+)
+
+# %%
+# remove varibales that will not be used in the model because of data leakage
+#df["deductible"]
+#df["copay"]
+#df["plan_type"]
+#df["network_tier"]
+
+
+# %%
+df["policy_term_group"] = pd.cut(
+    df["policy_term_years"],
+    bins=[0, 1, 3, 5, np.inf],
+    labels=["short_term", "medium_term", "long_term", "very_long_term"],
+    right=True,
+    include_lowest=True
+)
+
+
+# %%
+df["policy_changes_last_2yrs"].unique()
+df["policy_changes_last_2yrs"] = np.where(
+    df["policy_changes_last_2yrs"] > 0,1,0)
+
+# %%
+df["risk_score_group"] = pd.qcut(
+    df["risk_score"],
+    q = 3,
+    labels=["low_risk","moderate_risk","high_risk",]
+)
+
+df["risk_score_group"]
+
+# %%
+df["annual_medical_cost_group"] = pd.qcut(
+    df["annual_medical_cost"],
+    q = 4,
+    labels=["low_cost","lower_middle_cost","upper_middle_cost","high_cost"]
+)
+
+# %%
+df["claims_count"].unique()
+df["claims_group"] = pd.cut(
+    df["claims_count"],
+    bins=[-1, 0, 2, 5, 10, np.inf],
+    labels=["no_claims", "low_claims", "moderate_claims", "high_claims", "very_high_claims"]
+)
+
+
+# %%
+df["avg_claim_amount"].unique()
+df["avg_claim_group"] = pd.cut(
+    df["avg_claim_amount"],
+    bins=[-1, 0, 500, 1500, 5000, np.inf],
+    labels=[
+        "no_claims",
+        "low_cost_claims",
+        "moderate_claims",
+        "high_claims",
+        "very_high_claims"
+    ]
+)
+
+# %%
+df["total_claims_paid"].unique()
+df["total_claims_group"] = pd.cut(
+    df["total_claims_paid"],
+    bins=[-1, 0, 2000, 5000, 15000, np.inf],
+    labels=[
+        "no_claims_paid",
+        "low_total_claims",
+        "moderate_claims",
+        "high_claims",
+        "very_high_claims"
+    ]
+)
+
+# %%
+cols_to_drop = [
+    "age",
+    "education",
+    "household_size",
+    "income",
+    "bmi",
+    "dependents",
+    "systolic_bp",
+    "diastolic_bp",
+    "ldl",
+    "hba1c",
+    "policy_term_years",
+    "risk_score",
+    "annual_medical_cost",
+    "claims_count",
+    "avg_claim_amount",
+    "total_claims_paid",
+    "plan_type",
+    "network_tier",
+    "deductible",
+    "copay",
+    "monthly_premium"
+]
+
+df_model = df.drop(columns=cols_to_drop,axis=1)
+
+
+
+
+# %%
+df_model.info()
+
+# %%
+df_model
+
+# %%
+df_model.info()
+
+# %%
+df_model.rename(columns={"BMI_groups":"bmi_groups"},inplace=True)
+
+# %%
+
+from sqlalchemy import create_engine,text
+# Connection string
+engine = create_engine(
+    "postgresql+psycopg2://postgres:1131995i%40@localhost:5432/Insurnace"
+)
+
+# Export DataFrame to SQL
+df_model.to_sql(
+    name="premium_model_data",
+    con=engine,
+    if_exists="replace",
+    index=False
+)
+
+print("Table created successfully.")
+
+
+# %% [markdown]
+# # EDA on the new table
+
+# %%
+
+from sqlalchemy import text
+# Connection string
+query = text('SELECT COUNT(*) AS n_customers FROM public."premium_model_data";')
+# customers in the db
+customers = pd.read_sql_query(query, engine)
+
+print("Amount of customers:",customers["n_customers"].iloc[0])
+
+
+# %%
+#targets statistics
+print("Targets statistics:")
+print(round(df["target"].describe().T,2))
+
+# %%
+query = text('''SELECT region AS Region,
+                  AVG(target) AS Avg_annual_premium
+            FROM public."premium_model_data" 
+            GROUP BY region;''')
+         
+avg_premium_by_region = pd.read_sql_query(query, engine)
+plt.figure(figsize=(10,6))
+
+ax = sns.barplot(data=avg_premium_by_region, x="region", y="avg_annual_premium", hue = "region")
+plt.title("Average Annual Premium by Region")
+plt.xlabel("Region")
+plt.ylabel("Average Annual Premium(€)")
+for container in ax.containers:
+        ax.bar_label(container,fmt= "%d",padding= 2,fontsize = 9, fontweight = "bold")
+        
+plt.tight_layout()
+plt.show()
+
+# %%
+query = text('''SELECT urban_rural AS urban_rural,
+                       COUNT(*) AS customers,
+                       AVG(target) AS avg_annual_premium 
+             FROM public."premium_model_data"
+             GROUP BY urban_rural''')
+             
+avg_premium_by_urban_rural = pd.read_sql_query(query, engine)
+
+plt.figure(figsize=(10,6))
+ax = sns.barplot(data=avg_premium_by_urban_rural, x="urban_rural", y="avg_annual_premium", hue = "urban_rural")
+plt.title("Average Annual Premium by Urban/Rural Status")
+plt.xlabel("Urban/Rural Status")
+plt.ylabel("Average Annual Premium(€)")
+for container in ax.containers:
+        ax.bar_label(container,fmt= "%d",padding= 2,fontsize = 9, fontweight = "bold")
+plt.tight_layout()
+plt.show()
+
+# %%
+query = text('''SELECT region AS region,
+                       urban_rural AS urban_rural,
+                       AVG(target) AS avg_annual_premium
+                FROM public."premium_model_data"
+                GROUP BY urban_rural,region'''
+                )
+
+urban_rural_region_premium = pd.read_sql_query(query, engine)
+urb_rur_reg_heatmap = urban_rural_region_premium.pivot(index="region",columns="urban_rural",values="avg_annual_premium").round(2)
+
+plt.figure(figsize=(10,6))
+sns.heatmap(urb_rur_reg_heatmap, annot=True, fmt=".2f", cmap="YlGnBu")
+plt.title("Average Annual Premium by Region and Urban/Rural Status")
+plt.xlabel("Urban/Rural Status")
+plt.ylabel("Region")
+plt.tight_layout()
+plt.show()
+
+# %%
+query = """
+    SELECT 
+        age_groups,
+        AVG(target) AS avg_annual_premium
+    FROM public."premium_model_data"
+    GROUP BY age_groups
+    ORDER BY CASE age_groups
+        WHEN 'minors'         THEN 1
+        WHEN 'young_adult'    THEN 2
+        WHEN 'adult'          THEN 3
+        WHEN 'middle_aged'    THEN 4
+        WHEN 'senior_citizen' THEN 5
+    END;
+"""
+avg_annual_premium_by_age = pd.read_sql_query(query, engine)
+
+plt.figure(figsize=(10,6))
+sns.lineplot(data = avg_annual_premium_by_age,x = "age_groups",y="avg_annual_premium",marker="o")
+plt.title("Average Annual Premium by Age Groups")
+plt.xlabel("Age Groups")
+plt.ylabel("Average Annual Premium(€)")
+plt.tight_layout()
+plt.show()
+
+# %%
+query = """
+    SELECT 
+        age_groups,
+        sex,
+        AVG(target) AS avg_annual_premium
+    FROM public."premium_model_data"
+    GROUP BY age_groups,sex
+    ORDER BY CASE age_groups
+        WHEN 'minors'         THEN 1
+        WHEN 'young_adult'    THEN 2
+        WHEN 'adult'          THEN 3
+        WHEN 'middle_aged'    THEN 4
+        WHEN 'senior_citizen' THEN 5
+    END;
+"""
+avg_annual_premium_by_age_sex = pd.read_sql_query(query, engine)
+avg_annual_premium_by_age_sex_pivot = avg_annual_premium_by_age_sex.pivot(index="age_groups",columns="sex",values="avg_annual_premium").round(2)
+
+plt.figure(figsize=(10,6))
+sns.lineplot(data=avg_annual_premium_by_age_sex,x="age_groups",y="avg_annual_premium",hue="sex",marker="o")
+plt.title("Average Annual Premium by Age Groups and Sex")
+plt.xlabel("Age Groups")
+plt.ylabel("Average Annual Premium(€)")
+plt.tight_layout()
+
+# %%
+query = text('''SELECT income_levels AS income_levels,
+                        AVG(target) AS avg_annual_premium 
+                FROM public."premium_model_data"
+                GROUP BY income_levels''')
+
+avg_annual_premium_by_income = pd.read_sql_query(query, engine)
+
+plt.figure(figsize=(10,6))
+ax = sns.barplot(data = avg_annual_premium_by_income, x = "income_levels", y="avg_annual_premium", hue = "income_levels")
+plt.title("Average Annual Premium by Income Levels")
+plt.xlabel("Income Levels")
+plt.ylabel("Average Annual Premium(€)")
+for container in ax.containers:
+        ax.bar_label(container,fmt= "%d",padding= 2,fontsize = 9, fontweight = "bold")
+plt.tight_layout()
+plt.show()
+
+# %%
+query = text('''SELECT income_levels AS income_levels,
+                COUNT(*) AS n_high_risk_customers
+                FROM public."premium_model_data"
+                WHERE risk_score_group = 'high_risk'
+                GROUP BY income_levels;''')
+
+high_risk_customers_by_income = pd.read_sql_query(query, engine)
+
+plt.figure(figsize=(10,6))
+plt.pie(
+    high_risk_customers_by_income["n_high_risk_customers"], 
+    labels=high_risk_customers_by_income["income_levels"],
+    autopct='%1.1f%%',
+    startangle=140,
+    labeldistance=1.05,   
+    pctdistance=0.5       
+)
+plt.title("Proportion of High-Risk Customers by Income Levels")
+plt.axis('equal')
+plt.tight_layout()
+plt.show()
+
+
+# %%
+from tabulate import  tabulate
+query = text('''SELECT smoker AS smoker_status,
+                       COUNT(*) AS number_of_people,
+                       AVG(target) AS avg_annual_premium
+                FROM public."premium_model_data"
+                GROUP BY smoker;''' )
+                
+smoker_stats = pd.read_sql_query(query,engine).round(2)
+
+plt.figure(figsize=(10,6))
+ax = sns.barplot(data=smoker_stats, x="smoker_status", y="avg_annual_premium", hue="smoker_status")
+plt.title("Average Annual Premium by Smoking Status")
+plt.xlabel("Smoking Status")
+plt.ylabel("Average Annual Premium(€)")
+for container in ax.containers:
+        ax.bar_label(container,fmt= "%d",padding= 2,fontsize = 9, fontweight = "bold")
+plt.tight_layout()
+plt.show()
+print("number of people in each category:")
+print(tabulate(smoker_stats[["smoker_status","number_of_people"]], headers="keys", tablefmt="fancy_grid",showindex=False))
+
+# %%
+df_model.info()
+
+# %%
+query = text('''SELECT bmi_groups  AS BMI_groups,
+                AVG(target) AS avg_annual_premium
+                FROM public."premium_model_data"
+                GROUP BY bmi_groups 
+                ORDER BY avg_annual_premium ASC ;''')
+                
+avg_annual_premium_by_BMI = pd.read_sql_query(query, engine)
+
+plt.figure(figsize=(10,6))
+ax = sns.barplot(data=avg_annual_premium_by_BMI, x="bmi_groups", y="avg_annual_premium", hue = "bmi_groups")
+plt.title("Average Annual Premium by BMI Groups")
+plt.xlabel("BMI Groups")
+plt.ylabel("Average Annual Premium(€)")
+for container in ax.containers:
+        ax.bar_label(container,fmt= "%d",padding= 2,fontsize = 9, fontweight = "bold")
+plt.tight_layout()
+plt.show()
+
+# %%
+query = text(''' SELECT bmi_groups AS bmi_groups,
+                        AVG(target) AS avg_annual_premium 
+                 FROM public."premium_model_data"
+                 WHERE smoker = 'Current'
+                 GROUP BY bmi_groups
+                 ORDER BY avg_annual_premium ;''')
+avg_annual_premium_bmi_smokers = pd.read_sql_query(query, engine)
+plt.figure(figsize=(10,6))
+ax = sns.barplot(data=avg_annual_premium_bmi_smokers, x="bmi_groups", y="avg_annual_premium", hue = "bmi_groups")
+plt.title("Average Annual Premium by BMI Groups for Smokers")
+plt.xlabel("BMI Groups")
+plt.ylabel("Average Annual Premium(€)")
+for container in ax.containers:
+        ax.bar_label(container,fmt= "%d",padding= 2,fontsize = 9, fontweight = "bold")
+plt.tight_layout()
+plt.show()
+
+# %%
+query = text(''' SELECT annual_medical_cost_group AS annual_medical_cost_group,
+                        AVG(target) AS avg_annual_premium
+                 FROM public."premium_model_data"
+                 GROUP BY annual_medical_cost_group
+                 ORDER BY avg_annual_premium DESC;''' )
+avg_premium_by_medical_cost = pd.read_sql_query(query, engine)
+plt.figure(figsize=(10,6))
+ax = sns.barplot(data=avg_premium_by_medical_cost, x="annual_medical_cost_group", y="avg_annual_premium", hue = "annual_medical_cost_group")
+plt.title("Average Annual Premium by Annual Medical Cost Groups")
+plt.xlabel("Annual Medical Cost Groups")
+plt.ylabel("Average Annual Premium(€)")
+for  container in ax.containers:
+        ax.bar_label(container,fmt= "%d",padding= 2,fontsize = 9, fontweight = "bold")
+plt.tight_layout()
+plt.show()
+
+# %%
+query = text(''' SELECT chronic_count AS chronic_count,
+                        AVG(target) AS avg_annual_premium
+                 FROM public."premium_model_data"
+                 GROUP BY  chronic_count;''')
+
+chronic_conditions_premium = pd.read_sql_query(query, engine)
+plt.figure(figsize=(10,6))
+ax = sns.barplot(data=chronic_conditions_premium, x="chronic_count", y="avg_annual_premium", hue = "chronic_count",palette="Blues_d")
+plt.title("Average Annual Premium by Number of Chronic Conditions")
+plt.xlabel("Number of Chronic Conditions")
+plt.ylabel("Average Annual Premium(€)")
+for container in ax.containers:
+        ax.bar_label(container,fmt= "%d",padding= 2,fontsize = 9, fontweight = "bold")
+plt.tight_layout()
+plt.show()
+
+# %%
+df_model.info()
+
+# %% [markdown]
+# # Model Training And Evaluation
+
+# %%
+#target variable distribution
+plt.figure(figsize=(10,6))
+sns.histplot(df_model["target"],bins = 20, kde = True)
+plt.title("Distribution of Annual Premium (Target Variable)")
+plt.xlabel("Annual Premium (€)")
+plt.ylabel("Frequency")
+plt.tight_layout()
+plt.show()
+
+# %%
+# numeric features list
+numeric_f = df_model.select_dtypes(include= ["int64","int32"]).columns.tolist()
+
+# %%
+num_corr = (
+    df_model[numeric_f + ["target"]]
+    .corr()["target"]      
+    .drop("target")         
+    .sort_values(key=lambda s: s.abs(), ascending=False)
+)
+
+print(num_corr)
+plt.figure(figsize=(10,6))
+sns.heatmap(num_corr.to_frame(), annot=True, cmap="coolwarm", center=0)
+plt.title("Correlation of Numeric Features with Target Variable")
+plt.xlabel("Numeric Features")
+plt.ylabel("Correlation Coefficient")
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+
+
+# %%
+num_f_final = df_model[["chronic_count",                
+            "is_high_risk",                   
+            "hospitalizations_last_3yrs",    
+            "days_hospitalized_last_3yrs",    
+            "hypertension",                  
+            "had_major_procedure",            
+            "mental_health",                 
+            "arthritis",                     
+            "medication_count",              
+            "diabetes"]]
+
+# %%
+# categorical features list
+categorical_f = df_model.select_dtypes(include = ["category","object"]).columns.tolist()
+len(categorical_f)
+
+# %%
+from scipy.stats import f_oneway
+
+for col in categorical_f:
+    
+    if df_model[col].nunique() < 2 or df_model[col].nunique() > 20:
+        continue
+    
+    groups = [g["target"] for _, g in df_model.groupby(col)]
+    try:
+        stat, p = f_oneway(*groups)
+        print(f"{col} - p-value: {p:.4e}")
+    except Exception as e:
+        print(f"{col} - error: {e}")
+
+ 
+
+# %%
+categorical_f_final = df_model[["age_groups",
+                                "bmi_groups",
+                                "hba1c_group",
+                                "smoker",
+                                "systolic_bp_group",
+                                "risk_score_group",
+                                "annual_medical_cost_group",
+                                "claims_group",
+                                "avg_claim_group",
+                                "total_claims_group"]]
+
+# %%
+# model preparation dataset split
+from sklearn.model_selection import train_test_split
+
+X = df_model.drop(columns=["target"],axis=1)
+y = df_model["target"]
+
+X_train,X_temp,y_train,y_temp = train_test_split(X,y,test_size= 0.4,random_state= 42)
+
+X_val,X_test,y_val,y_test = train_test_split(X_temp,y_temp,test_size= 0.5,random_state = 42)
+
+del X_temp, y_temp
+
+# %%
+# pipelines for preprocessing
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
+numeric_pipe = Pipeline([
+    ("imputer",SimpleImputer(strategy="median")),
+    ("scaler",StandardScaler())
+])
+
+categorical_pipe = Pipeline([
+    ("imputer",SimpleImputer(strategy="most_frequent")),
+    ("onehot",OneHotEncoder(handle_unknown="ignore",sparse_output=False))
+])
+
+preprocessor = ColumnTransformer([
+    ("num",numeric_pipe,num_f_final.columns.tolist()),
+    ("cat",categorical_pipe,categorical_f_final.columns.tolist())
+])
+
+# %%
+# models selection process
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
+from sklearn.neural_network import MLPRegressor
+
+models = {
+    "LinearRegression": LinearRegression(),
+    
+    "RandomForestRegressor": RandomForestRegressor(
+        n_estimators=300,      
+        max_depth=None,        
+        min_samples_split=5,   
+        min_samples_leaf=2,
+        random_state=42,
+        n_jobs=-1
+    ),
+    
+    "XGBRegressor": XGBRegressor(
+        n_estimators=500,     
+        learning_rate=0.05,   
+        subsample=0.8,
+        colsample_bytree=0.8,
+        random_state=42,
+        n_jobs=-1,
+        tree_method="hist"    
+    ),
+    
+    "MLPRegressor": MLPRegressor(
+        hidden_layer_sizes=(64, 32),  
+        activation='relu',
+        solver='adam',
+        learning_rate='adaptive',
+        max_iter=300,                  
+        random_state=42
+      
+    )
+}
+
+
+# %%
+from sklearn.model_selection import cross_validate
+from sklearn.metrics import root_mean_squared_error,mean_squared_error, mean_absolute_error, r2_score
+
+results = []
+
+scoring = {
+    "rmse": "neg_root_mean_squared_error",
+    "mae": "neg_mean_absolute_error",
+    "r2": "r2",
+}
+
+for name, model in models.items():
+    pipeline = Pipeline([
+        ("preprocessor", preprocessor),
+        ("model", model)
+    ])
+    
+    cv_res = cross_validate(
+        pipeline,
+        X_val,          
+        y_val,
+        cv=3,           
+        scoring=scoring,
+        n_jobs=2,       
+        return_train_score=False
+    )
+    
+    results.append({
+        "model": name,
+        "cv_rmse_mean": -cv_res["test_rmse"].mean(),
+        "cv_rmse_std":  cv_res["test_rmse"].std(),
+        
+        "cv_mae_mean":  -cv_res["test_mae"].mean(),
+        "cv_mae_std":    cv_res["test_mae"].std(),
+        
+        "cv_r2_mean":    cv_res["test_r2"].mean(),
+        "cv_r2_std":     cv_res["test_r2"].std(),
+    })
+
+cv_summary = pd.DataFrame(results)
+print(cv_summary)
+
+
+# %%
+print("The best model thta will be use is the MLPRGRESSOR")
+print("The RandomForestRegressor will also be kept to help with SHAP values analysis,because its faster.")
+
+# %%
+from scipy.stats import uniform, loguniform
+from sklearn.model_selection import RandomizedSearchCV
+mlp_base = MLPRegressor(
+    activation='relu',
+    solver='adam',
+    max_iter=300,          
+    random_state=42
+)
+
+pipeline_mlp = Pipeline([
+    ("preprocessor", preprocessor),
+    ("model", mlp_base)
+])
+
+param_distributions = {
+    "model__hidden_layer_sizes": [
+        (64, 32),
+        (128, 64),
+        (64, 32, 16),
+    ],
+    "model__alpha": loguniform(1e-5, 1e-2),         # L2 penalty
+    "model__learning_rate_init": loguniform(1e-4, 1e-2),
+    "model__learning_rate": ["constant", "adaptive"],
+}
+
+search_mlp = RandomizedSearchCV(
+    pipeline_mlp,
+    param_distributions=param_distributions,
+    n_iter=10,                 
+    cv=2,                      
+    scoring="neg_root_mean_squared_error",
+    n_jobs=-1,
+    random_state=42,
+    verbose= False
+)
+
+search_mlp.fit(X_train, y_train)
+
+print("Best params:", search_mlp.best_params_)
+print("Best CV RMSE:", -search_mlp.best_score_)
+
+best_mlp_pipe = search_mlp.best_estimator_
+
+
+
+y_pred_test = best_mlp_pipe.predict(X_test)
+rmse = root_mean_squared_error(y_test, y_pred_test)
+mae = mean_absolute_error(y_test, y_pred_test)
+r2 = r2_score(y_test, y_pred_test)
+
+print("Test RMSE:", rmse)
+print("Test MAE :", mae)
+print("Test R²  :", r2)
+
+# %%
+print("Mean premium:", y_test.mean())
+print("MAE %:", 100 * mae / y_test.mean())
+
+
+# %%
+
+
+y_train_log = np.log1p(y_train)
+y_test_log  = np.log1p(y_test)
+
+
+best_mlp_pipe.fit(X_train, y_train_log)
+y_pred_test_log = best_mlp_pipe.predict(X_test)
+
+y_pred_test = np.expm1(y_pred_test_log)
+
+mape = (np.abs(y_test - y_pred_test) / y_test).mean()
+print("MAPE:", mape)
+
+
+# %% [markdown]
+# # Shap Values Analysis
+
+# %%
+# fit model  RandomForestRegressor to chech the similarity with the best model if they are closed it will be used for shap analysis
+
+rf = RandomForestRegressor(
+    n_estimators=300,
+    max_depth=10,
+    min_samples_split=5,
+    min_samples_leaf=2,
+    random_state=42,
+    n_jobs=-1
+)
+
+rf_pipe = Pipeline([
+    ("preprocessor", preprocessor),
+    ("model", rf)
+])
+
+rf_pipe.fit(X_train, y_train)
+
+y_pred_rf = rf_pipe.predict(X_test)
+
+rmse_rf = root_mean_squared_error(y_test, y_pred_rf)
+mae_rf  = mean_absolute_error(y_test, y_pred_rf)
+r2_rf   = r2_score(y_test, y_pred_rf)
+
+print("RF – Test RMSE:", rmse_rf)
+print("RF – Test MAE :", mae_rf)
+print("RF – Test R²  :", r2_rf)
+
+
+# %%
+# refit the model
+preprocessor.fit(X_train)
+
+X_train_proc = preprocessor.transform(X_train)
+X_test_proc = preprocessor.transform(X_test)
+
+rf_shap = RandomForestRegressor(
+                n_estimators=300,      
+                max_depth=10,        
+                min_samples_split=5,   
+                min_samples_leaf=2,
+                random_state=42,
+                n_jobs=-1
+)
+
+
+rf_shap.fit(X_train_proc,y_train)
+feature_names = preprocessor.get_feature_names_out()
+
+
+
+# %%
+import shap 
+explainer = shap.TreeExplainer(rf_shap)
+idx = np.random.choice(X_test_proc.shape[0],size= 1000,replace= False)
+X_sample =X_test_proc[idx]
+shap_values = explainer(X_sample)
+
+# %%
+#Summary plot
+shap.summary_plot(
+    shap_values.values,
+    X_sample,
+    feature_names = feature_names
+)
+
+
+# %%
+feature_names
+
+# %%
+shap.dependence_plot("num__chronic_count", shap_values.values, X_sample, feature_names=feature_names)
+shap.dependence_plot("num__hospitalizations_last_3yrs", shap_values.values, X_sample, feature_names=feature_names)
+shap.dependence_plot("cat__smoker_Current", shap_values.values, X_sample, feature_names=feature_names)
+shap.dependence_plot("cat__risk_score_group_high_risk", shap_values.values, X_sample, feature_names=feature_names)
+shap.dependence_plot("cat__annual_medical_cost_group_high_cost", shap_values.values, X_sample, feature_names=feature_names)
+shap.dependence_plot("cat__claims_group_no_claims", shap_values.values, X_sample, feature_names=feature_names)
+
+
+# %%
+#waterfall plot
+shap_values.feature_names = feature_names
+indices = np.random.choice(X_sample.shape[0],size = 3,replace= False)
+print("Random indices", indices)
+
+for i in indices:
+    shap.plots.waterfall(shap_values[i],max_display= 15)
+
+
+# %%
+df_model
+
+# %%
+df_seg = df_model.copy()
+
+df_seg["premium_segment"] = pd.qcut(
+    df_seg["target"],
+    q=3,  # 3 κατηγορίες: low / mid / high
+    labels=["low_price", "mid_price", "high_price"]
+)
+mean_premium = df_seg["target"].mean()
+print(mean_premium)  
+
+def premium_bucket(x):
+    if x < 375:
+        return "low_price"
+    elif x < 750:
+        return "mid_price"
+    else:
+        return "high_price"
+
+df_seg["premium_segment"] = df_seg["target"].apply(premium_bucket)
+
+
+# %%
+df_risk = df_model.copy()
+
+
+risk_points = np.zeros(len(df_risk))
+
+
+risk_points += np.where(df_risk["risk_score_group"] == "high_risk", 2, 0)
+risk_points += np.where(df_risk["risk_score_group"] == "medium_risk", 1, 0)
+
+
+risk_points += np.where(
+    df_risk["annual_medical_cost_group"].isin(["high_cost", "upper_middle_cost"]), 2, 0
+)
+risk_points += np.where(df_risk["annual_medical_cost_group"] == "lower_middle_cost", 1, 0)
+
+
+risk_points += np.where(
+    df_risk["claims_group"].isin(["high_claims", "very_high_claims"]), 2, 0
+)
+risk_points += np.where(df_risk["claims_group"] == "moderate_claims", 1, 0)
+
+
+risk_points += np.where(df_risk["chronic_count"] >= 3, 2, 0)
+risk_points += np.where(df_risk["chronic_count"] == 2, 1, 0)
+
+risk_points += np.where(df_risk["smoker"] == "Current", 1, 0)
+
+
+risk_points += np.where(df_risk["hospitalizations_last_3yrs"] >= 2, 1, 0)
+
+df_risk["risk_points"] = risk_points
+
+def map_risk(points):
+    if points <= 2:
+        return "low_risk_final"
+    elif points <= 5:
+        return "medium_risk_final"
+    else:
+        return "high_risk_final"
+
+df_risk["risk_level_final"] = df_risk["risk_points"].apply(map_risk)
+
+# %%
+df_model["risk_level_final"] = df_risk["risk_level_final"]
+df_model["premium_segment"] = df_seg["premium_segment"]
+
+
+# %%
+df_heat_map = df_model[["risk_level_final","premium_segment","target"]]
+df_agg = df_heat_map.groupby(["premium_segment","risk_level_final"]).agg(
+    customers = ("target","count"),
+    mean_premium  = ("target","mean")
+).reset_index()
+
+df_agg
+
+# %%
+plt.figure(figsize=(10,6))
+ax = sns.barplot(
+    data=df_agg,
+    x="premium_segment",
+    y="customers",
+    hue="risk_level_final"
+)
+for container in ax.containers:
+        ax.bar_label(container,fmt= "%d",padding= 2,fontsize = 9, fontweight = "bold")
+plt.title("Number of customers by premium segment and risk level")
+plt.xlabel("Premium segment")
+plt.ylabel("Number of customers")
+plt.tight_layout()
+plt.show()
+
+# %%
+pivot_mean = df_agg.pivot(
+    index = "risk_level_final",
+    columns= "premium_segment",
+    values= "mean_premium"
+)
+
+plt.figure(figsize = (10,6))
+sns.heatmap(pivot_mean,annot= True,fmt= ".2f", cmap= "coolwarm")
+plt.title("Mean premium by risk level & premium segment")
+plt.xlabel("Premium segment")
+plt.ylabel("Risk level")
+plt.tight_layout()
+plt.show()</code></pre>
+            </div>
+
+            <div class="text-center mt-12 pb-12">
+                <button onclick="switchPage('intro')" class="btn-next bg-slate-800 hover:bg-slate-700">Επιστροφή στην Αρχή</button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-8 text-center text-slate-500 text-sm">
+        <p>Insurance ML Project • 2025</p>
+    </footer>
+
+    <!-- Application Logic -->
+    <script>
+        // State
+        let charts = {};
+
+        // Navigation Logic
+        function switchPage(pageId) {
+            // Update Menu
+            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+            const navBtn = document.getElementById(`nav-${pageId}`);
+            if(navBtn) navBtn.classList.add('active');
+
+            // Update Content
+            document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`page-${pageId}`).classList.add('active');
+
+            window.scrollTo(0,0);
+            renderChartsForPage(pageId);
+            
+            // Highlight Code if needed
+            if(pageId === 'code') {
+                Prism.highlightAll();
+            }
+        }
+
+        function renderChartsForPage(pageId) {
+            Chart.defaults.font.family = "'Inter', sans-serif";
+            Chart.defaults.color = '#64748b';
+
+            if (pageId === 'eda' && !charts['chartIncome']) {
+                charts['chartIncome'] = new Chart(document.getElementById('chartIncome'), {type: 'bar', data: { labels: ['Low Income', 'Low-Mid', 'Up-Mid', 'High Income'], datasets: [{ label: 'High Risk Customers', data: [8109, 8187, 8060, 8261], backgroundColor: '#3b82f6', borderRadius:4 }] }, options: {maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{min:7000}}} });
+                charts['chartAge'] = new Chart(document.getElementById('chartAge'), {type: 'line', data: { labels: ['Minors', 'Young', 'Adults', 'Middle', 'Seniors'], datasets: [{ label: 'Avg Premium (€)', data: [497.64, 523.42, 563.35, 611.95, 674.17], borderColor: '#10b981', backgroundColor:'rgba(16,185,129,0.1)', fill:true, tension:0.4, borderWidth:3 }] }, options: {maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{min:400}}} });
+                charts['chartSmoker'] = new Chart(document.getElementById('chartSmoker'), {type: 'bar', data: { labels: ['Current', 'Former', 'Never'], datasets: [{ label: 'Avg Premium (€)', data: [741.88, 601.43, 549.84], backgroundColor: ['#0f172a','#64748b','#cbd5e1'], borderRadius:4 }] }, options: {maintainAspectRatio:false, plugins:{legend:{display:false}}} });
+                charts['chartMedCost'] = new Chart(document.getElementById('chartMedCost'), {type: 'bar', data: { labels: ['Low', 'Low-Mid', 'Up-Mid', 'High'], datasets: [{ label: 'Avg Premium (€)', data: [306.34, 409.18, 555.74, 1058.67], backgroundColor: ['#fecdd3','#fda4af','#f43f5e','#be123c'], borderRadius:4 }] }, options: {maintainAspectRatio:false, plugins:{legend:{display:false}}} });
+                charts['chartChronic'] = new Chart(document.getElementById('chartChronic'), {type: 'line', data: { labels: ['0','1','2','3','4','5','6'], datasets: [{ label: 'Avg Premium (€)', data: [479.95, 622.05, 756.74, 918.30, 1120.71, 676.27, 2459.74], borderColor: '#f97316', backgroundColor: '#f97316', borderWidth:2, pointRadius:5 }] }, options: {maintainAspectRatio:false, plugins:{legend:{display:false}}} });
+            }
+
+            if (pageId === 'model' && document.getElementById('anovaTableBody').innerHTML === "") {
+                const rows = [{n:'smoker',p:0},{n:'age_groups',p:0},{n:'bmi_groups',p:0},{n:'risk_score',p:0},{n:'med_cost',p:0},{n:'claims',p:0},{n:'region',p:0.22},{n:'sex',p:0.50}];
+                const tbody = document.getElementById('anovaTableBody');
+                rows.forEach(r => {
+                    const sig = r.p < 0.05;
+                    tbody.innerHTML += `<tr class="bg-white border-b hover:bg-slate-50"><td class="px-6 py-3 font-medium ${sig?'text-slate-900':'text-slate-400'}">${r.n}</td><td class="px-6 py-3 font-mono ${sig?'text-emerald-700':'text-slate-400'}">${r.p.toFixed(6)}</td><td class="text-center"><span class="${sig?'bg-emerald-100 text-emerald-800':'bg-slate-100 text-slate-500'} px-2 py-1 rounded text-xs font-bold">${sig?'Significant':'Not Sig.'}</span></td></tr>`;
+                });
+            }
+
+            if (pageId === 'shap' && !charts['chartShapSummary']) {
+                charts['chartShapSummary'] = new Chart(document.getElementById('chartShapSummary'), {type: 'bar', data: { labels: ['Med Cost', 'Claims', 'Chronic', 'Smoker', 'Risk'], datasets: [{ data: [0.85, 0.75, 0.60, 0.45, 0.40], backgroundColor: ['#e11d48','#f59e0b','#f97316','#64748b','#ef4444'], borderRadius:4 }] }, options: {indexAxis:'y', maintainAspectRatio:false, plugins:{legend:{display:false}}} });
+                charts['chartShapDependence'] = new Chart(document.getElementById('chartShapDependence'), {type: 'scatter', data: { datasets: [{ label:'Impact', data: Array.from({length:50}, (_,i) => ({x:Math.floor(i/8), y:(Math.floor(i/8)*0.2)+(Math.random()*0.1)})), backgroundColor:'#f97316', pointRadius:5 }] }, options: {maintainAspectRatio:false, scales:{x:{title:{display:true,text:'Chronic Count'}}, y:{title:{display:true,text:'SHAP Value'}}}, plugins:{legend:{display:false}}} });
+                charts['chartWaterfallA'] = new Chart(document.getElementById('chartWaterfallA'), {type: 'bar', data: { labels: ['Base','No High Cost','No Claims','Smoker','Final'], datasets:[{ data:[[0,582],[467,582],[422,467],[422,425],[0,409]], backgroundColor:['#94a3b8','#3b82f6','#3b82f6','#e11d48','#10b981'] }] }, options:{maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{min:300}}} });
+                charts['chartWaterfallB'] = new Chart(document.getElementById('chartWaterfallB'), {type: 'bar', data: { labels: ['Base','High Cost','High Claim','Risk','Final'], datasets:[{ data:[[0,582],[582,1027],[1027,1065],[1065,1071],[0,962]], backgroundColor:['#94a3b8','#e11d48','#e11d48','#e11d48','#be123c'] }] }, options:{maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{min:500}}} });
+            }
+
+            if (pageId === 'strategy' && !charts['chartStrategySeg']) {
+                charts['chartStrategySeg'] = new Chart(document.getElementById('chartStrategySeg'), {
+                    type: 'bar', 
+                    data: { labels: ['Low Price', 'Mid Price', 'High Price'], datasets: [
+                        { label:'Low Risk', data:[26716, 27469, 5938], backgroundColor:'#10b981' },
+                        { label:'Med Risk', data:[3818, 18052, 8728], backgroundColor:'#f59e0b' },
+                        { label:'High Risk', data:[195, 4367, 4552], backgroundColor:'#ef4444' }
+                    ] }, 
+                    options: {maintainAspectRatio:false, scales:{x:{stacked:false}, y:{stacked:false}}}
+                });
+            }
+        }
+
+        // Helper Function
+        function copyCode() {
+            const code = document.getElementById('fullCode').innerText;
+            navigator.clipboard.writeText(code).then(() => alert('Code Copied!'));
+        }
+
+        switchPage('intro');
+    </script>
+</body>
+</html>
